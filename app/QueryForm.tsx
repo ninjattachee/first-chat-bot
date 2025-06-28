@@ -2,14 +2,45 @@
 
 import { FieldValues, useForm } from "react-hook-form";
 import { MdOutlineKeyboardVoice } from "react-icons/md";
+import axios from "axios";
 
 import TextArea from "./TextArea";
+import useMessageStore from "./store";
 
 const QueryForm = () => {
-  const { register, handleSubmit, setValue, watch } = useForm();
+  const { register, handleSubmit, setValue, watch } = useForm({
+    defaultValues: {
+      text: "",
+    },
+  });
+  const { addMessage } = useMessageStore();
 
   const onSubmit = (data: FieldValues) => {
-    console.log(data.text);
+    setValue("text", "");
+    addMessage({
+      role: "user",
+      content: data.text,
+    });
+    axios
+      .post("http://localhost:11434/api/chat", {
+        model: "llava:13b",
+        messages: [
+          {
+            role: "user",
+            content: data.text,
+          },
+        ],
+        stream: false,
+      })
+      .then((res) => {
+        addMessage({
+          role: res.data.message.role,
+          content: res.data.message.content,
+        });
+      })
+      .catch((err) => {
+        console.log(err.response.data);
+      });
   };
 
   return (
